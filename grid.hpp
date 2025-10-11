@@ -1,6 +1,7 @@
 #include "coords.hpp"
-#include <bits/stdc++.h>
 #include <vector>
+#include <string>
+#include <fstream>
 extern const int width;
 extern const int height;
 extern const double kinematicViscosity;
@@ -17,13 +18,19 @@ public:
     double timeStep;
     double alpha;
 
+    vector <vector<vector<Vec>>> frames;
+    vector <vector<vector<Vec>>> generatedFrames;
 
     //core logic
     void forces();
     void diffusion();
     void projection();
     void advection();
+    void frameGen();
 
+    //file io
+    void writeFramesToFile(const string& filename);
+    void readFramesFromFile(const string& filename);
 
     //helper functions
     void renderNext();
