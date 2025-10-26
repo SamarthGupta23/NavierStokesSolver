@@ -1,13 +1,12 @@
 #include "grid.hpp"
 #include <iostream>
 #include <cmath>
-#include <omp.h>
 #include <fstream>
 
 const int width = 256;
 const int height = 256;
-const double kinematicViscosity = 5;
-const int diffusionIterations = 25;
+const double kinematicViscosity = 3;
+const int diffusionIterations = 15;
 const int projectionIterations = 20;
 const int dx = 1;
 
@@ -16,15 +15,11 @@ void grid::init() {
     nextVelocities.resize(width, vector<Vec>(height, Vec(0, 0)));
     pressureForces.resize(width, vector<double>(height, 0.0));
 
-    timeStep = 0.02;
+    timeStep = 0.1;
     this->alpha = kinematicViscosity * timeStep / (dx * dx);
-
-    omp_set_num_threads(12);
-    cout << "Using " << omp_get_max_threads() << " threads" << endl;
 }
 
 void grid::forces() {
-#pragma omp parallel for
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
             Vec force;
@@ -58,7 +53,6 @@ void grid::diffusion() {
     vector<vector<Vec>> before = currentVelocities;
 
     for (int iter = 0; iter < diffusionIterations; iter++) {
-#pragma omp parallel for
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
                 Vec left = getBoundaryVelocity(i - 1, j, currentVelocities);
@@ -77,7 +71,6 @@ void grid::diffusion() {
 }
 
 void grid::advection() {
-#pragma omp parallel for
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             int x = j;
@@ -110,7 +103,6 @@ void grid::advection() {
 void grid::projection() {
     vector<vector<double>> divergence(height, vector<double>(width, 0));
 
-#pragma omp parallel for
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             double u_right = getBoundaryVelocity(i, j + 1, currentVelocities).x;
@@ -126,7 +118,6 @@ void grid::projection() {
     while (iterations--) {
         cout << iterations << endl;
 
-#pragma omp parallel for
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
                 if ((i + j) % 2 == 0) {
@@ -140,7 +131,6 @@ void grid::projection() {
             }
         }
 
-#pragma omp parallel for
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
                 if ((i + j) % 2 == 1) {
@@ -155,7 +145,6 @@ void grid::projection() {
         }
     }
 
-#pragma omp parallel for
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             double p_left = getBoundaryPressure(i, j - 1, pressureForces);
@@ -185,7 +174,6 @@ void grid::frameGen() {
         for (int j = 0; j < 10; j++) {
             vector<vector<Vec>> gen(height, vector<Vec>(width));
 
-#pragma omp parallel for
             for (int r = 0; r < height; r++) {
                 for (int c = 0; c < width; c++) {
                     gen[r][c].x = (frames[i][r][c].x * (10 - j) + frames[i + 1][r][c].x * (j + 1)) / 11;
