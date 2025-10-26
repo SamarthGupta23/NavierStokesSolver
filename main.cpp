@@ -1,35 +1,47 @@
+#include "raylib.h"
 #include "grid.hpp"
+#include <math.h>
 #include <iostream>
-#include <fstream>
-#include <cmath>
-using namespace std;
 
 int main() {
-    int totalFrames = 100;
-    // ASCII visualization of velocity field
-    ofstream outFile("velocity_ascii.txt");
-    if (!outFile.is_open()) {
-        cerr << "Error opening velocity_ascii.txt" << endl;
-        return 1;
-    }
+    std::cout << "Initializing window..." << std::endl;
+    InitWindow(256 * 3, 256 * 3, "Navier Stokes");
+    SetTargetFPS(60);
+
+    std::cout << "Creating grid..." << std::endl;
     grid space;
-    space.init();
 
-    cout << "Starting fluid simulation..." << endl;
-    cout << "Grid size: " << width << "x" << height << endl;
-    cout << "Total frames: " << totalFrames << endl;
-    cout << "Timestep: " << space.timeStep << endl;
-    cout << "Kinematic viscosity: " << kinematicViscosity << endl;
+    std::cout << "Reading frames from file..." << std::endl;
+    space.readFramesFromFile("C:/Users/samar/source/repos/NavierStokesSolver/NavierStokesSolver/finalframes_one.txt");
 
-    for (int frame = 0; frame < totalFrames; frame++) {
-        space.renderNext();
-        space.frames.push_back(space.currentVelocities);
-        cout << "frame generated " << frame + 1 << endl;
+    std::cout << "Total frames loaded: " << space.generatedFrames.size() << std::endl;
+
+    int currentFrame = 0;
+    while (!WindowShouldClose()) {
+        vector <vector<Vec>> toRender = space.generatedFrames[currentFrame % 1090];
+        std::cout << "toRender size: " << toRender.size() << std::endl;
+        if (toRender.size() > 0) {
+            std::cout << "toRender[0] size: " << toRender[0].size() << std::endl;
+        }
+        currentFrame++;
+        BeginDrawing();
+        ClearBackground(BLACK);
+        double maxVelocity = 0.0;
+        vector <vector<double>> velocity(toRender.size(), vector<double>(toRender[0].size(), 0.0));
+        for (int i = 0; i < toRender.size(); i++) {
+            for (int j = 0; j < toRender[i].size(); j++) {
+                velocity[i][j] = pow(pow(toRender[i][j].x , 2) + pow(toRender[i][j].y , 2) , 0.5 );
+                maxVelocity = max(maxVelocity, velocity[i][j]);
+            }
+        }
+        for (int i = 0 ; i < toRender.size(); i++) {
+            for (int j = 0 ; j < toRender[i].size(); j++) {
+                int red = (maxVelocity > 0) ? (int)(255 * velocity[i][j] / maxVelocity) : 0;
+                DrawRectangle(i* 3 , j * 3 , 3 , 3 ,Color{(unsigned char)red, 0, 255, 255});
+            }
+        }
+        EndDrawing();
     }
-    cout << "frames calculated , beginning frame generation algorithm" << endl;
-
-    //framegen algo
-    space.frameGen();
-    space.writeFramesToFile("finalframes.txt");
+    CloseWindow();
     return 0;
 }
